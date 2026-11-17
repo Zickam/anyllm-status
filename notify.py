@@ -52,11 +52,7 @@ def issue_list(repository, token):
 
 def matching_issue(repository, token, marker):
     return next(
-        (
-            issue
-            for issue in issue_list(repository, token)
-            if marker in issue.get("body", "")
-        ),
+        (issue for issue in issue_list(repository, token) if marker in issue.get("body", "")),
         None,
     )
 
@@ -88,7 +84,10 @@ def failed_checks(raw_results):
 
 def outage_body(repository, run_url, raw_results):
     checks = failed_checks(raw_results)
-    check_lines = "\n".join(f"- `{check}`" for check in checks) or "- Review the failed probe output in the workflow run."
+    check_lines = (
+        "\n".join(f"- `{check}`" for check in checks)
+        or "- Review the failed probe output in the workflow run."
+    )
     return (
         f"{OUTAGE_MARKER}\n\n"
         "Public availability probes failed for the Any LLM site.\n\n"
@@ -113,9 +112,7 @@ def notify(repository, token, probe_ok, run_url, raw_results=""):
                 token,
                 {"body": f"Availability probes recovered.\n\nWorkflow run: {run_url}"},
             )
-            github_request(
-                "PATCH", f"{path}/issues/{issue_number}", token, {"state": "closed"}
-            )
+            github_request("PATCH", f"{path}/issues/{issue_number}", token, {"state": "closed"})
             print("Closed the availability issue after a successful probe.")
         else:
             print("No open availability issue needs recovery.")
