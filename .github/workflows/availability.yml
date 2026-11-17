@@ -4,14 +4,21 @@ on:
   schedule:
     - cron: '7,17,27,37,47,57 * * * *'
   workflow_dispatch:
+    inputs:
+      notification_test:
+        description: Create and close a test notification issue
+        type: boolean
+        default: false
   push:
     paths:
       - .github/workflows/availability.yml
       - check_site.py
       - record_status.py
+      - notify.py
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: availability
@@ -34,3 +41,15 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           PROBE_OK: ${{ steps.probe.outcome == 'success' }}
         run: python3 record_status.py
+      - name: Notify about availability changes
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PROBE_OK: ${{ steps.probe.outcome == 'success' }}
+          PROBE_RESULTS: ${{ steps.probe.outputs.results }}
+        run: python3 notify.py
+      - name: Test notification delivery after monitor changes
+        if: github.event_name == 'push' || inputs.notification_test == true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 notify.py --test
